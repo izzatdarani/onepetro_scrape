@@ -1,0 +1,51 @@
+Timer unit: 3.52617e-07 s
+
+Total time: 20.4033 s
+File: C:\Users\Invigour Energy\Desktop\onepetroscrap\onepetro_scrape.py
+Function: extract at line 75
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    75                                               def extract(self, rows=100, verbose=True):
+    76                                                   """
+    77                                           		Extract paper details.
+    78                                           
+    79                                           		Parameters:
+    80                                           		-----------
+    81                                           			rows : integer
+    82                                           				Define the quantity of papers to be extracted.
+    83                                           				Sorted by onepetro default (most relevant)
+    84                                           			verbose : boolean
+    85                                           				Display progress status. Default is True.
+    86                                           
+    87                                           		Attributes:
+    88                                           		-----------
+    89                                           			Scraper.papers
+    90                                                   """
+    91                                                   
+    92         1         36.0     36.0      0.0          if self.queryflag: # manual exception handling for queryflag attribute error
+    93                                                       # request the papers for detail extraction
+    94         1          9.0      9.0      0.0              rows = self.total_results if rows=='all' else rows
+    95         1         15.0     15.0      0.0              self.url += '&rows='+str(rows)
+    96         1    5232718.0 5232718.0      9.0              bs = BeautifulSoup(requests.get(self.url).text, 'lxml')
+    97                                                       # begin extraction
+    98         1         14.0     14.0      0.0              self.papers = []
+    99        11     174868.0  15897.1      0.3              for count,a in enumerate(bs.find_all('h3', {'class':'book-title'})):
+   100        10       3444.0    344.4      0.0                  print('Extracting {} of {}'.format(count+1, rows)) if verbose else None
+   101        10       3530.0    353.0      0.0                  url = a.find('a')['href']
+   102        10   50332864.0 5033286.4     87.0                  bs_paper = BeautifulSoup(requests.get(url).text, 'lxml')
+   103        10     959882.0  95988.2      1.7                  title = bs_paper.find('h1', {'class':'document-title'}).getText().strip()
+   104        10     981844.0  98184.4      1.7                  div = bs_paper.find('div', {'class':'highlighted'})
+   105        10        168.0     16.8      0.0                  div = bs_paper.find('div', {'class':'indent-main-section'}) if div==None else div
+   106        10       9440.0    944.0      0.0                  headers = [x.getText() for x in div.find_all('dl')[0].find_all('dt')]
+   107        10       9968.0    996.8      0.0                  details = [x.getText() for x in div.find_all('dl')[0].find_all('dd')]
+   108        10         39.0      3.9      0.0                  details_edited = []
+   109        68        423.0      6.2      0.0                  for item in map(lambda x: x.split(), details):
+   110        58        280.0      4.8      0.0                      details_edited.append(' '.join(item).split('|'))
+   111        10      11042.0   1104.2      0.0                  series = pd.Series(title, index=['Title'])
+   112        68        384.0      5.6      0.0                  for i,head in enumerate(headers):
+   113        58     140949.0   2430.2      0.2                      series[head] = details_edited[i]
+   114        10         66.0      6.6      0.0                  self.papers.append(series)
+   115         1        348.0    348.0      0.0              print('Extraction complete')
+   116                                                   else:
+   117                                                       raise AttributeError("'Scrap' object has no attribute 'query'")
